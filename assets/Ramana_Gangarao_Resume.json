@@ -1,0 +1,79 @@
+{
+  "header": {
+    "full_name": "Ramana Gangarao",
+    "title": "Senior AI & Software Engineer",
+    "focus": "Agentic AI · RAG · LLM Evaluation",
+    "location": "Bangalore, India",
+    "date_of_birth": "04/04/1995",
+    "phone": "+91 8555021702",
+    "email": "gangaraoramana0404@gmail.com"
+  },
+  "summary_note": "I do not require employer visa sponsorship. After a job offer I will apply for my own German work visa and permit within 5 to 8 weeks. My notice period is 30 days. 8+ years of project experience.",
+  "skills": [
+    "Python", "Java", "SQL", "LangGraph", "Google ADK", "LangChain", "MCP", "ReAct",
+    "Multi-Agent Systems", "HITL", "Claude", "Gemini", "OpenAI", "Amazon Bedrock", "RAG",
+    "Hybrid Retrieval", "Embeddings", "LLM-as-a-Judge", "Docling", "Unstructured.io",
+    "DeepEval", "Langfuse", "MLflow", "SageMaker", "Model Monitoring", "FastAPI",
+    "Spring Boot", "Spring", "Pydantic", "REST APIs", "Event-Driven Architecture",
+    "Apache Kafka", "Neo4j", "Milvus", "PostgreSQL", "Redis", "Presidio", "Liquibase",
+    "Google Document AI", "AWS", "GCP", "Docker", "Kubernetes", "Terraform", "Jenkins",
+    "GitHub Actions", "CI/CD"
+  ],
+  "experience": [
+    {
+      "dates": "07/2026 – today",
+      "title": "Lead AI & Software Engineer",
+      "company": "Synechron Technologies Pvt. Ltd.",
+      "location": "Bangalore, India",
+      "summary": "US financial AI platform for LLM agent observability, quality evaluation, and regulatory compliance at Wells Fargo. Python, FastAPI, Apache Kafka, LLM-as-a-Judge, React.js HITL workflows, PostgreSQL, Liquibase, Harness CI/CD."
+    },
+    {
+      "dates": "12/2025 – 05/2026",
+      "title": "AI Engineer",
+      "company": "Innovapath INC",
+      "location": "San Francisco, USA",
+      "summary": "US healthcare AI platform for automated contract understanding at Optum. 9-agent Google ADK pipeline, Google Document AI, Vertex AI Gemini, 16-node Neo4j knowledge graph, ReAct agents, MCP interface with Pydantic, FastAPI, DeepEval, 40–50% lower review effort, p95 latency < 5s, Docker, GCP Cloud Run/GKE."
+    },
+    {
+      "dates": "01/2025 – 10/2025",
+      "title": "Graduate Research Assistant (AI & Systems)",
+      "company": "Atlantis University",
+      "location": "Miami, USA",
+      "summary": "LangGraph multi-agent RAG platform using Amazon Bedrock Claude Sonnet, Milvus hybrid retrieval, Amazon Titan embeddings, cross-encoder reranking, Docling/Unstructured.io for 1,000+ profiles, Redis semantic caching, Langfuse/DeepEval."
+    },
+    {
+      "dates": "09/2021 – 08/2024",
+      "title": "Software Developer / MLOps Engineer",
+      "company": "Wipro Limited",
+      "location": "Chennai, India",
+      "summary": "Alight US workforce intelligence platform for 36M+ users. AWS/SageMaker ML pipelines and feature stores using Python and PySpark for RoBERTa/XGBoost models, MLflow, migrated 50,000+ documents improving retrieval by 20%."
+    },
+    {
+      "dates": "09/2016 – 09/2021",
+      "title": "Software Engineer",
+      "company": "INNOVAPATH IT Solutions PVT Ltd.",
+      "location": "Hyderabad, India",
+      "summary": "Enterprise HR CRM using Java, Spring Boot, REST APIs, JPA/Hibernate, Docker, AWS, Jenkins."
+    }
+  ],
+  "education": [
+    {
+      "degree": "M.S. in Information Technology",
+      "institution": "Atlantis University, Miami, USA",
+      "dates": "08/2024 – 10/2025"
+    },
+    {
+      "degree": "B.Tech in Electronics and Instrumentation Engineering",
+      "institution": "Keshav Memorial Institute of Technology (JNTUH), Hyderabad, India",
+      "dates": "07/2013 – 04/2016"
+    }
+  ],
+  "certifications": [
+    "AWS Certified Cloud Practitioner (2023)"
+  ],
+  "languages": [
+    {"name": "English", "level": "C2"},
+    {"name": "Telugu", "level": "Mother tongue"},
+    {"name": "German", "level": "A1, currently learning"}
+  ]
+}
