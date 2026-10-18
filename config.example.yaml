@@ -91,7 +91,7 @@ gdpr_and_consents:
   uncheck_follow_company: true
 
 uploads:
-  Resume: "assets/Ramana_Gangarao_CV.pdf"
+  Resume: "assets/your_cv.pdf"
   Cover Letter: ""
 
 cover_letter:

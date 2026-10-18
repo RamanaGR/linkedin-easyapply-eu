@@ -79,7 +79,8 @@ linkedin-easyapply-eu/
 ├── assets/                         # local; gitignore real CV if desired
 │   ├── .gitkeep
 │   ├── Ramana_Gangarao_CV.pdf      # local only
-│   └── Ramana_Gangarao_Resume.json
+│   ├── resume.example.json         # committed sample
+│   └── resume.json                 # local only (gitignored)
 ├── config.example.yaml             # committed (fake/placeholder PII)
 ├── config.yaml                     # gitignored (your real profile)
 ├── .env.example                    # committed

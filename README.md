@@ -25,9 +25,10 @@ pip install -r requirements.txt
 
 cp config.example.yaml config.yaml   # edit with your real profile
 cp .env.example .env                 # LINKEDIN_EMAIL / PASSWORD + Ollama
+cp assets/resume.example.json assets/resume.json   # fill with your details
 
-# Place your CV PDF at the path in config uploads.Resume
-# e.g. assets/Ramana_Gangarao_CV.pdf
+# Place your CV PDF at the path in config uploads.Resume (gitignored)
+# e.g. assets/your_cv.pdf
 ```
 
 Required local models (already on your machine if listed):

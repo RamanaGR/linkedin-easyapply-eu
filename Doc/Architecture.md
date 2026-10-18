@@ -124,7 +124,7 @@ gdpr_and_consents:
   uncheck_follow_company: true
 
 uploads:
-  Resume: "assets/Ramana_Gangarao_CV.pdf"
+  Resume: "assets/your_cv.pdf"
   Cover Letter: ""              # optional PDF path; leave empty if unused
 
 cover_letter:
@@ -221,9 +221,9 @@ qa_memory:
 
 
 
-## 2. Sync Structured Resume Context (`assets/Ramana_Gangarao_Resume.json`)
+## 2. Sync Structured Resume Context (`assets/resume.json`)
 
-Create/update `assets/Ramana_Gangarao_Resume.json` (and copy `Ramana_Gangarao_CV.pdf` to `assets/Ramana_Gangarao_CV.pdf`) so `AIQuestionAnswerer._load_resume()` loads the exact EU CV:
+Copy `assets/resume.example.json` → `assets/resume.json` (gitignored) and fill your details. Place your CV PDF at the path in `uploads.Resume` so the bot loads your local EU CV:
 
 - **Header:** Ramana Gangarao | Senior AI & Software Engineer | Agentic AI · RAG · LLM Evaluation | Bangalore, India | Born 04/04/1995 | +91 8555021702 | [gangaraoramana0404@gmail.com](mailto:gangaraoramana0404@gmail.com)
 - **Summary Note:** "I can provide my own visa/work permit for Germany within 5–8 weeks. My notice period is 30 days. 8+ years of project experience."
@@ -298,7 +298,7 @@ Upgrade `src/application.py` to solve all High-Priority DOM issues in `ARCHITECT
   - Match any other EU language (French, Dutch, Spanish) -> `None` / `No proficiency` / `0`.
 7. **GDPR Checkboxes & Resume Upload:**
   - Auto-check mandatory GDPR, privacy policy (`Datenschutz`), and data storage consent checkboxes by clicking their `<label>`.
-  - Upload `assets/Ramana_Gangarao_CV.pdf` ONLY to file inputs whose container label matches `resume`, `cv`, or `lebenslauf`. Never upload the CV into a `Cover Letter` / `Anschreiben` file input if `uploads.Cover Letter` is empty.
+  - Upload the configured Resume PDF ONLY to file inputs whose container label matches `resume`, `cv`, or `lebenslauf`. Never upload the CV into a `Cover Letter` / `Anschreiben` file input if `uploads.Cover Letter` is empty.
   - Cover letter text fields / Anschreiben: if `cover_letter.enabled`, render `cover_letter.template` with job placeholders, optionally lightly adapt via Ollama (keep template structure), run `sanitize_human_text()`, then fill. User owns and corrects the template in config.
 8. **Submit & False-Negative Fix:**
   - On the final step, uncheck `#follow-company-checkbox` (`Follow company`).

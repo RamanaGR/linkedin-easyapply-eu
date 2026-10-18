@@ -1,0 +1,51 @@
+{
+  "header": {
+    "full_name": "Alex Example",
+    "title": "Senior Software Engineer",
+    "focus": "Backend · APIs · Cloud",
+    "location": "Berlin, Germany",
+    "date_of_birth": "01/01/1990",
+    "phone": "+49 170 0000000",
+    "email": "alex.example@example.com"
+  },
+  "summary_note": "I do not require employer visa sponsorship. Notice period is 30 days. 8+ years of project experience.",
+  "skills": [
+    "Python", "Java", "SQL", "FastAPI", "Spring Boot", "Docker",
+    "Kubernetes", "AWS", "PostgreSQL", "Redis", "CI/CD"
+  ],
+  "experience": [
+    {
+      "dates": "01/2022 – today",
+      "title": "Senior Software Engineer",
+      "company": "Example Corp",
+      "location": "Berlin, Germany",
+      "summary": "Built APIs and data pipelines. Python, FastAPI, PostgreSQL, Docker, Kubernetes."
+    },
+    {
+      "dates": "06/2018 – 12/2021",
+      "title": "Software Engineer",
+      "company": "Demo Technologies",
+      "location": "Munich, Germany",
+      "summary": "Backend services with Java, Spring Boot, REST APIs, AWS, Jenkins."
+    }
+  ],
+  "education": [
+    {
+      "degree": "M.S. in Computer Science",
+      "institution": "Example University",
+      "dates": "09/2016 – 08/2018"
+    },
+    {
+      "degree": "B.S. in Computer Science",
+      "institution": "Sample Institute of Technology",
+      "dates": "09/2012 – 06/2016"
+    }
+  ],
+  "certifications": [
+    "AWS Certified Cloud Practitioner (2023)"
+  ],
+  "languages": [
+    {"name": "English", "level": "C1"},
+    {"name": "German", "level": "B1"}
+  ]
+}

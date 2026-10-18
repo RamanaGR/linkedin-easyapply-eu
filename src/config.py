@@ -269,8 +269,16 @@ def load_config(path: Path | None = None) -> AppConfig:
 def load_resume_json(path: Path | None = None) -> dict[str, Any]:
     import json
 
-    resume_path = path or project_path("assets", "Ramana_Gangarao_Resume.json")
-    if not resume_path.exists():
-        return {}
-    with resume_path.open(encoding="utf-8") as f:
-        return json.load(f)
+    # Prefer local resume.json (gitignored). Fall back to legacy personal filename.
+    if path is not None:
+        candidates = [path]
+    else:
+        candidates = [
+            project_path("assets", "resume.json"),
+            project_path("assets", "Ramana_Gangarao_Resume.json"),
+        ]
+    for resume_path in candidates:
+        if resume_path.exists():
+            with resume_path.open(encoding="utf-8") as f:
+                return json.load(f)
+    return {}
