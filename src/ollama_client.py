@@ -14,14 +14,17 @@ from src.config import EnvSettings
 
 logger = logging.getLogger("easyapply")
 
-SYSTEM_PROMPT = """You are filling LinkedIn Easy Apply form answers for a job candidate.
+SYSTEM_PROMPT = """You are the job candidate filling a LinkedIn Easy Apply form.
+Write answers in first person as if you typed them yourself in plain everyday English.
+
 Rules:
 1. Use ONLY facts from the provided Resume and Config context. Never invent skills, companies, degrees, or years.
-2. Write in simple, direct, natural English like a fluent non-native English-speaking engineer.
-3. Keep open-ended answers brief: 1 to 3 simple sentences.
+2. Sound like a fluent non-native English-speaking engineer: simple, direct, natural. Not like a chatbot or resume parser.
+3. Keep open-ended answers brief: 1 to 3 short sentences unless a shorter limit is given.
 4. NEVER use em-dashes, en-dashes, semicolons, or markdown formatting.
 5. NEVER use AI buzzwords: delve, testament, tapestry, furthermore, moreover, pivotal, spearheaded, unwavering, thrilled, synergy, landscape, cutting-edge, leverage, utilizing, orchestrated, passionate. Use plain words like built, worked on, used, developed.
-6. Return ONLY the direct answer text with no preamble or quotes."""
+6. Return ONLY the direct answer text. No preamble, no quotes, no labels.
+7. NEVER start with or include phrases like: My resume details, Based on my resume, According to my profile, According to my resume, From my resume, As per my resume, As an AI, Here is my answer, Sure, or similar meta openings. Just answer the question."""
 
 BANNED_REPLACEMENTS = [
     (r"\bspearheaded\b", "led"),
@@ -45,6 +48,20 @@ BANNED_REPLACEMENTS = [
     (r"\bpassionate\b", "interested"),
 ]
 
+# Meta openings models sometimes prepend before the real answer
+PREAMBLE_PATTERNS = [
+    r"^(my\s+resume\s+details?\s*[:\-–—,]?\s*)",
+    r"^(based\s+on\s+my\s+resume\s*[:\-–—,]?\s*)",
+    r"^(according\s+to\s+my\s+(resume|profile|cv)\s*[:\-–—,]?\s*)",
+    r"^(from\s+my\s+resume\s*[:\-–—,]?\s*)",
+    r"^(as\s+per\s+my\s+(resume|profile|cv)\s*[:\-–—,]?\s*)",
+    r"^(as\s+an\s+ai\s*[:\-–—,]?\s*)",
+    r"^(here\s+is\s+my\s+answer\s*[:\-–—,]?\s*)",
+    r"^(sure[!.,]?\s*)",
+    r"^(of\s+course[!.,]?\s*)",
+    r"^(answer\s*[:\-–—]\s*)",
+]
+
 
 def sanitize_human_text(text: str) -> str:
     if not text:
@@ -54,10 +71,32 @@ def sanitize_human_text(text: str) -> str:
     out = out.replace(";", ".")
     out = out.replace("```", "").replace("**", "").replace("*", "")
     out = out.strip().strip('"').strip("'")
+    # Strip meta preambles (repeat in case of stacked openers)
+    for _ in range(3):
+        cleaned = out
+        for pattern in PREAMBLE_PATTERNS:
+            cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
+        if cleaned == out:
+            break
+        out = cleaned
     for pattern, repl in BANNED_REPLACEMENTS:
         out = re.sub(pattern, repl, out, flags=re.IGNORECASE)
     out = re.sub(r"\s+", " ", out).strip()
     return out
+
+
+def truncate_at_word(text: str, max_chars: int) -> str:
+    """Hard-cap length; prefer cutting on a word boundary."""
+    if max_chars is None or max_chars <= 0 or not text:
+        return text or ""
+    if len(text) <= max_chars:
+        return text
+    cut = text[:max_chars].rstrip()
+    if " " in cut and max_chars > 12:
+        maybe = cut.rsplit(" ", 1)[0].rstrip()
+        if len(maybe) >= max(8, max_chars // 3):
+            return maybe
+    return cut
 
 
 class OllamaClient:
@@ -120,14 +159,40 @@ class OllamaClient:
                 return self._chat(self.env.ollama_model_fallback, system, user)
             raise
 
-    def answer_question(self, question: str, context: str, extra: str = "") -> str:
+    def answer_question(
+        self,
+        question: str,
+        context: str,
+        extra: str = "",
+        max_chars: int | None = None,
+        digits_only: bool = False,
+    ) -> str:
+        constraints: list[str] = []
+        if digits_only:
+            constraints.append(
+                "The field accepts ONLY digits (a whole number). "
+                "Return a single integer with no currency symbols, words, or ranges."
+            )
+        if max_chars and max_chars > 0:
+            constraints.append(
+                f"Keep the entire answer under {max_chars} characters. "
+                "Prefer one short sentence if needed."
+            )
+        constraint_block = ("\n".join(constraints) + "\n") if constraints else ""
         user = (
-            f"Context:\n{context}\n\n"
+            f"Context (use as grounding facts only, do not quote it back):\n{context}\n\n"
             f"{extra}\n\n"
+            f"{constraint_block}"
             f"Question: {question}\n"
-            f"Answer:"
+            f"Answer (first person, plain English, no preamble):"
         )
-        return self._chat(self.env.ollama_model, SYSTEM_PROMPT, user)
+        answer = self._chat(self.env.ollama_model, SYSTEM_PROMPT, user)
+        if digits_only:
+            digits = re.sub(r"[^\d]", "", answer or "")
+            answer = digits
+        if max_chars and max_chars > 0:
+            answer = truncate_at_word(answer, max_chars)
+        return answer
 
     def match_option(self, question: str, options: list[str], hint: str = "") -> str:
         if not options:

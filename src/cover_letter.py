@@ -1,13 +1,10 @@
-"""Cover letter from user-owned config template."""
+"""Cover letter from user-owned config template (instant, no LLM)."""
 
 from __future__ import annotations
 
-import logging
+from typing import Any
 
 from src.config import AppConfig
-from src.ollama_client import OllamaClient, sanitize_human_text
-
-logger = logging.getLogger("easyapply")
 
 
 def render_template(
@@ -29,38 +26,21 @@ def render_template(
 
 def build_cover_letter(
     config: AppConfig,
-    ollama: OllamaClient | None,
+    ollama: Any = None,
     *,
     position: str = "",
     company: str = "",
     location: str = "",
-    adapt: bool = True,
+    adapt: bool = False,
 ) -> str:
+    """Fill cover letter from config template instantly ({company}, {position}, …).
+
+    Different company/role names per job are expected (template substitution).
+    Ollama is never called — keep the apply loop fast.
+    """
+    del ollama, adapt
     if not config.cover_letter.enabled:
         return ""
-    base = render_template(
+    return render_template(
         config, position=position, company=company, location=location
     )
-    if not adapt or ollama is None:
-        return base
-
-    try:
-        prompt = (
-            "Lightly adapt this cover letter for the role. Keep the same structure and facts. "
-            "Do not add new skills or employers. Keep it short. Preserve paragraph breaks.\n\n"
-            f"Role: {position}\nCompany: {company}\nLocation: {location}\n\n"
-            f"Template:\n{base}"
-        )
-        adapted = ollama.answer_question(
-            "Adapt the cover letter.",
-            config.context_blob(),
-            extra=prompt,
-        )
-        if len(adapted) < 40:
-            return base
-        # sanitize_human_text collapses newlines; restore simple paragraphs
-        cleaned = sanitize_human_text(adapted)
-        return cleaned
-    except Exception as exc:
-        logger.warning("Cover letter adapt failed, using template: %s", exc)
-        return base

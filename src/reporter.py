@@ -19,6 +19,7 @@ STATUSES = (
     "SKIPPED_LANGUAGE",
     "DRY_RUN",
     "SKIPPED_SEEN",
+    "STOPPED_EASY_APPLY_LIMIT",
 )
 
 CSV_FIELDS = [
@@ -104,11 +105,10 @@ class Reporter:
                     "notes": result.notes,
                 }
             )
+        # Only permanently skip successful / intentional terminal outcomes.
+        # DRY_RUN and FAILED_* stay retryable (dry-run is practice; failures may flake).
         if result.job_id and result.status in (
             "APPLIED",
-            "DRY_RUN",
-            "FAILED_VALIDATION",
-            "FAILED_EXCEPTION",
             "SKIPPED_ALREADY_APPLIED",
         ):
             self.mark_seen(result.job_id, result.status)

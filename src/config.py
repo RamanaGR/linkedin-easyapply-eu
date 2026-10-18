@@ -26,6 +26,7 @@ class Profile(BaseModel):
     location_full: str = "Bangalore, Karnataka, India"
     linkedin_url: str = ""
     github_url: str = ""
+    has_drivers_license: bool = False
 
 
 class Experience(BaseModel):
@@ -228,10 +229,13 @@ class EnvSettings(BaseModel):
     ollama_intent_model: str = "llama3.2:latest"
     ollama_embed_model: str = "nomic-embed-text:latest"
     chrome_profile_dir: str = "chrome_profile"
+    # Verbose fill/validation tracing (set EASYAPPLY_DEBUG_FILL=true)
+    easyapply_debug_fill: bool = False
 
 
 def load_env() -> EnvSettings:
     load_dotenv(ROOT / ".env")
+    debug_raw = (os.getenv("EASYAPPLY_DEBUG_FILL") or "").strip().lower()
     return EnvSettings(
         linkedin_email=os.getenv("LINKEDIN_EMAIL", ""),
         linkedin_password=os.getenv("LINKEDIN_PASSWORD", ""),
@@ -241,6 +245,7 @@ def load_env() -> EnvSettings:
         ollama_intent_model=os.getenv("OLLAMA_INTENT_MODEL", "llama3.2:latest"),
         ollama_embed_model=os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text:latest"),
         chrome_profile_dir=os.getenv("CHROME_PROFILE_DIR", "chrome_profile"),
+        easyapply_debug_fill=debug_raw in ("1", "true", "yes", "on"),
     )
 
 

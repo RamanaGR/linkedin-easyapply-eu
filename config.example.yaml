@@ -52,10 +52,11 @@ compensation_eu:
 
 languages_cefr:
   English:
-    cefr: "C2"
-    linkedin_label: "Native or bilingual"
-    german_label: "Verhandlungssicher"
-    numeric_0_to_10: 10
+    cefr: "C1"
+    linkedin_label: "Full professional proficiency"
+    german_label: "Fließend"
+    status: "C1, professional working English (not native)"
+    numeric_0_to_10: 8
   Telugu:
     cefr: "C2"
     linkedin_label: "Native or bilingual"

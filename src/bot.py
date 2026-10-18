@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from src import selectors as sel
 from src.config import AppConfig, EnvSettings
@@ -593,6 +595,32 @@ class EasyApplyBot:
                     self.config.session.max_delay_seconds,
                 )
                 short_delay(2000)
+                # Daily-limit banner lives in the search right pane
+                # (.jobs-search__job-details--container), not always on /jobs/view/.
+                # LinkedIn auto-selects the first card — check before any navigation.
+                try:
+                    WebDriverWait(self.driver, 8).until(
+                        EC.presence_of_element_located(
+                            (
+                                By.CSS_SELECTOR,
+                                ".jobs-search__job-details--container, "
+                                ".jobs-details__main-content, "
+                                "#jobs-apply-button-id, "
+                                ".artdeco-inline-feedback--error",
+                            )
+                        )
+                    )
+                    short_delay(1200)
+                except Exception:
+                    pass
+                if applier.easy_apply_daily_limit_reached():
+                    self._stop = True
+                    logger.warning(
+                        "Stopping run — LinkedIn Easy Apply daily limit on search "
+                        "results (We limit daily submissions… apply tomorrow)"
+                    )
+                    break
+
                 cards = search.parse_cards()
                 self.reporter.scanned += len(cards)
                 logger.info("Found %s cards for '%s' @ %s", len(cards), keywords, location)
@@ -628,11 +656,37 @@ class EasyApplyBot:
                             self._record(card, "SKIPPED_ALREADY_APPLIED")
                             continue
 
+                        # Red warning under grayed Easy Apply — stop whole run
+                        if applier.easy_apply_daily_limit_reached():
+                            self._record(
+                                card,
+                                "STOPPED_EASY_APPLY_LIMIT",
+                                notes="LinkedIn daily Easy Apply limit",
+                            )
+                            self._stop = True
+                            logger.warning(
+                                "Stopping run — LinkedIn Easy Apply daily limit "
+                                "(save job and apply tomorrow)"
+                            )
+                            break
+
                         status = applier.apply_to_job(card)
                         attempted += 1
+                        # Button-not-found path used to return FAILED_EXCEPTION while
+                        # the red limit banner was already on screen — re-check & stop.
+                        if status != "STOPPED_EASY_APPLY_LIMIT" and (
+                            applier.easy_apply_daily_limit_reached()
+                        ):
+                            status = "STOPPED_EASY_APPLY_LIMIT"
                         if status == "APPLIED":
                             self._applied_today += 1
                         self._record(card, status)
+                        if status == "STOPPED_EASY_APPLY_LIMIT":
+                            self._stop = True
+                            logger.warning(
+                                "Stopping run — LinkedIn Easy Apply daily limit reached"
+                            )
+                            break
                         human_delay(
                             self.config.session.min_delay_seconds,
                             self.config.session.max_delay_seconds,
@@ -641,6 +695,8 @@ class EasyApplyBot:
                         logger.exception("Job loop error: %s", exc)
                         self._record(card, "FAILED_EXCEPTION", notes=str(exc))
                         attempted += 1
+                if self._stop:
+                    break
             except Exception as exc:
                 logger.exception("Search loop error: %s", exc)
                 # Do not pause for "captcha" mid-run — continue next query

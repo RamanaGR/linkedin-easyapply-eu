@@ -28,10 +28,13 @@ VALIDATION_TEXT_MARKERS = (
     "please enter a valid answer",
     "please make a selection",
     "please select an option",
+    "invalid input",
     "pflichtfeld",
     "dies ist ein pflichtfeld",
     "erforderlich",
 )
+# SDUI character counters — NOT validation errors (e.g. "6/100", "1 of 20 characters")
+CHAR_COUNTER_RE = r"^\d+\s*/\s*\d+$|^\d+\s+of\s+\d+\s+characters?$"
 FOLLOW_COMPANY = "#follow-company-checkbox, input[type='checkbox'][id*='follow']"
 
 # --- New LinkedIn SDUI Easy Apply (2026): native <dialog>, hashed class names ---
@@ -96,8 +99,17 @@ FILE_INPUT = "input[type='file']"
 JOBS_SEARCH_RESULTS = ".jobs-search-results-list, .scaffold-layout__list"
 JOB_CARD = "li.scaffold-layout__list-item, div.job-card-container"
 EASY_APPLY_BUTTON = (
-    "button.jobs-apply-button, button[aria-label*='Easy Apply'], "
-    "button[aria-label*='Einfach bewerben']"
+    "button.jobs-apply-button, button#jobs-apply-button-id, "
+    "button[aria-label*='Easy Apply'], button[aria-label*='Einfach bewerben'], "
+    "button[data-live-test-job-apply-button]"
+)
+# Red daily-limit banner under grayed Easy Apply (job top card)
+EASY_APPLY_LIMIT_FEEDBACK = (
+    ".jobs-s-apply ~ .artdeco-inline-feedback--error, "
+    ".artdeco-inline-feedback--error[role='alert'], "
+    ".artdeco-inline-feedback--error .artdeco-inline-feedback__message, "
+    ".jobs-apply-button--top-card ~ .artdeco-inline-feedback--error, "
+    ".mt4 .artdeco-inline-feedback--error"
 )
 NEXT_BUTTON_TEXTS = (
     "Next",
