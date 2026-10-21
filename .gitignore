@@ -21,10 +21,12 @@ env/
 .mypy_cache/
 .ruff_cache/
 
-# Local assets with PII (keep example JSON if needed)
+# Local assets with PII — commit only assets/resume.example.json
 assets/*.pdf
-assets/Ramana_Gangarao_CV.pdf
-
+assets/resume.json
+assets/*Resume*.json
+assets/*CV*.pdf
+!assets/resume.example.json
 # OS / IDE
 .DS_Store
 .idea/

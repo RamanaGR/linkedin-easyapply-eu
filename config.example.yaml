@@ -1,0 +1,187 @@
+# Copy to config.yaml and fill with your real profile.
+# config.yaml is gitignored — never commit PII.
+
+profile:
+  full_name: "Your Full Name"
+  first_name: "Your"
+  last_name: "Name"
+  date_of_birth: "01/01/1990"
+  email: "you@example.com"
+  phone_number: "+91 0000000000"
+  phone_country_code: "India (+91)"
+  current_city: "Bangalore"
+  current_country: "India"
+  location_full: "Bangalore, Karnataka, India"
+  linkedin_url: "https://www.linkedin.com/in/your-profile"
+  github_url: "https://github.com/your-handle"
+
+experience:
+  total_experience_years: 8
+  skill_years:
+    Python: 8
+    Java: 5
+    SQL: 8
+    FastAPI: 4
+    AWS: 6
+    Docker: 6
+    Generative AI: 3
+    RAG: 3
+
+eu_work_authorization:
+  currently_in_eu: false
+  requires_visa_sponsorship: "No"
+  can_provide_own_germany_visa: "Yes"
+  germany_visa_timeline: "5-8 weeks"
+  germany_visa_statement: "I do not require employer visa sponsorship. After a job offer I will apply for my own German work visa and permit within 5 to 8 weeks. My notice period is 30 days."
+  willing_to_relocate: "Yes"
+  notice_period_days: 30
+  notice_period_weeks: 4
+  notice_period_months: 1
+
+compensation_eu:
+  currency: "EUR"
+  expected_salary_eur_min: 75000
+  expected_salary_eur_max: 95000
+  expected_salary_eur_target: 85000
+  expected_salary_range_text: "75000 - 95000 EUR"
+  current_salary_eur: 45000
+  salary: 85000
+  rate: 55
+  current_ctc_lpa: 30
+  expected_ctc_lpa: 40
+
+languages_cefr:
+  English:
+    cefr: "C1"
+    linkedin_label: "Full professional proficiency"
+    german_label: "Fließend"
+    status: "C1, professional working English (not native)"
+    numeric_0_to_10: 8
+  Telugu:
+    cefr: "C2"
+    linkedin_label: "Native or bilingual"
+    german_label: "Muttersprache"
+    numeric_0_to_10: 10
+  German:
+    cefr: "A1"
+    linkedin_label: "Elementary"
+    german_label: "Grundkenntnisse"
+    status: "A1, currently learning"
+    numeric_0_to_10: 2
+  default_other_language:
+    cefr: "None"
+    linkedin_label: "None"
+    german_label: "Keine"
+    numeric_0_to_10: 0
+
+education:
+  highest_degree: "Master's Degree"
+  masters_degree: "Master of Science in Information Technology"
+  masters_institution: "Atlantis University, Miami, USA"
+  masters_dates: "08/2024 - 10/2025"
+  bachelors_degree: "Bachelor of Technology in Electronics and Instrumentation Engineering"
+  bachelors_institution: "Example University"
+  bachelors_dates: "07/2013 - 04/2016"
+  certifications:
+    - "AWS Certified Cloud Practitioner (2023)"
+
+gdpr_and_consents:
+  accept_gdpr_privacy_policy: true
+  accept_talent_pool_storage: true
+  uncheck_follow_company: true
+
+uploads:
+  Resume: "assets/your_cv.pdf"
+  Cover Letter: ""
+
+cover_letter:
+  enabled: true
+  template: |
+    Dear Hiring Team,
+
+    I am applying for the {position} role at {company}. I have {years_experience}+ years of experience in AI and software engineering, with focus on agentic systems, RAG, and production LLM applications.
+
+    I am based in Bangalore, India, and I do not require employer visa sponsorship. After a job offer I can apply for my own German work visa within 5 to 8 weeks. My notice period is 30 days.
+
+    Please find my CV attached. I look forward to hearing from you.
+
+    Kind regards,
+    {full_name}
+
+positions:
+  - "Senior AI Engineer"
+  - "Lead AI Engineer"
+  - "AI Software Engineer"
+  - "Generative AI Engineer"
+  - "Agentic AI Engineer"
+  - "LLM Engineer"
+  - "Machine Learning Engineer"
+
+# Also search LinkedIn by main tech stack (not only job titles)
+tech_keywords:
+  - "LangGraph"
+  - "LangChain"
+  - "RAG"
+  - "LLM"
+  - "Generative AI"
+  - "Agentic AI"
+  - "Google ADK"
+  - "MCP"
+  - "FastAPI"
+  - "Python LLM"
+  - "MLOps"
+  - "Amazon Bedrock"
+
+locations:
+  - "Germany"
+  - "Berlin, Germany"
+  - "Munich, Germany"
+  - "Frankfurt, Germany"
+  - "Hamburg, Germany"
+  - "Netherlands"
+  - "Amsterdam, Netherlands"
+  - "European Union"
+
+search:
+  strategy: "positions_and_tech"
+  use_positions: true
+  use_tech_keywords: true
+  filters:
+    easy_apply_only: true
+    date_posted: "past_week"
+    workplace_type:
+      - "hybrid"
+      - "remote"
+      - "onsite"
+    experience_level:
+      - "Mid-Senior"
+      - "Associate"
+  blacklists:
+    title_keywords:
+      - "Intern"
+      - "Praktikum"
+      - "Werkstudent"
+      - "Working Student"
+      - "PhD"
+    companies:
+      - "Crossover"
+      - "Canonical"
+    skip_strict_german_c1_required: true
+
+session:
+  max_search_time: 7200
+  max_applications_per_run: 50
+  max_applications_per_day: 50
+  unattended_mode: true
+  require_submission_confirmation: false
+  dry_run: true
+  min_delay_seconds: 2.0
+  max_delay_seconds: 6.0
+  captcha_wait_minutes: 15
+  login_2fa_wait_minutes: 10
+
+qa_memory:
+  fuzzy_high_threshold: 88
+  fuzzy_low_threshold: 75
+  use_ollama_intent: true
+  use_embeddings: true
