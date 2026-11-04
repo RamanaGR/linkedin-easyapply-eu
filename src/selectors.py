@@ -96,12 +96,26 @@ DISCARD_CONFIRM = (
     "button[data-testid='dialog-primary-button']"
 )
 FILE_INPUT = "input[type='file']"
-JOBS_SEARCH_RESULTS = ".jobs-search-results-list, .scaffold-layout__list"
-JOB_CARD = "li.scaffold-layout__list-item, div.job-card-container"
+JOBS_SEARCH_RESULTS = (
+    ".jobs-search-results-list, .scaffold-layout__list, "
+    "[componentkey^='job-card-component-ref-'], [role='button'][componentkey*='job-card']"
+)
+JOB_CARD = (
+    "li.scaffold-layout__list-item, div.job-card-container, "
+    "[role='button'][componentkey^='job-card-component-ref-'], "
+    "[componentkey^='job-card-component-ref-']"
+)
 EASY_APPLY_BUTTON = (
     "button.jobs-apply-button, button#jobs-apply-button-id, "
     "button[aria-label*='Easy Apply'], button[aria-label*='Einfach bewerben'], "
     "button[data-live-test-job-apply-button]"
+)
+DIRECT_APPLY_BUTTON = (
+    "button.jobs-apply-button, a.jobs-apply-button, "
+    "#jobs-apply-button-id, "
+    "button[data-live-test-job-apply-button], a[data-live-test-job-apply-button], "
+    ".jobs-s-apply button, .jobs-s-apply a, "
+    ".jobs-apply-button--top-card button, .jobs-apply-button--top-card a"
 )
 # Red daily-limit banner under grayed Easy Apply (job top card)
 EASY_APPLY_LIMIT_FEEDBACK = (

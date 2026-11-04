@@ -12,6 +12,8 @@ Fault-tolerant EU-market LinkedIn Easy Apply bot (Python + Selenium `undetected-
 - EU rules: salary EUR, **no employer sponsorship**, own Germany visa, CEFR, GDPR, notice period
 - Cover letter from **your** config template (`{company}`, `{position}`, …)
 - Search by job titles and/or tech keywords; Easy Apply + workplace filters
+- Round-robin search: all roles in Germany first, then other countries, with per-role / per-query caps
+- Title filter: apply only when the job title matches your roles (skips Data Engineer, etc.)
 - Unattended form failures → screenshot/HTML dump → discard → next job
 - Stops cleanly on LinkedIn’s **daily Easy Apply limit** (search right-pane banner)
 - Captcha / 2FA → **pause for human** (timeout configurable)
@@ -76,6 +78,10 @@ python -m src.main --tech "LangGraph" --tech "RAG" --max-apps 3
 
 # Live submit (only when you are ready)
 python -m src.main --live --max-apps 3
+
+# Direct Scout Mode: collect external (non-Easy-Apply) jobs, score fit (0-100%), tag ATS, and write Markdown queue
+python -m src.main --direct-only
+python -m src.main --direct-only --min-score 95 --max-apps 25
 ```
 
 First login may require **mobile approve** after Sign in. The bot waits (`session.login_2fa_wait_minutes` / `LOGIN_2FA_WAIT_MINUTES`) then continues.
@@ -99,19 +105,28 @@ rm -rf ~/Library/Application\ Support/undetected_chromedriver
 | `languages_cefr` | CEFR + LinkedIn/German labels |
 | `uploads.Resume` | Path to local CV PDF (gitignored) |
 | `cover_letter.template` | Placeholders `{full_name}`, `{position}`, `{company}`, `{location}`, `{years_experience}` |
-| `positions` / `tech_keywords` / `locations` | Search queries |
-| `search.strategy` | `positions_and_tech` (or CLI `--roles-only` / `--tech-only`) |
+| `positions` / `tech_keywords` / `locations` | Search queries. **First location is searched first** (put Germany at the top). |
+| `search.strategy` | `round_robin` = every role in each country (Germany first). `positions_and_tech` = one role across all countries (starves later titles). |
+| `search.max_applications_per_query` | Successful applies per (role, country) then next pair (default `2`) |
+| `search.max_applications_per_role` | Successful applies per title this run (default `8`) |
+| `search.max_cards_per_query` | Opened job pages per search before moving on (default `12`) |
+| `search.require_title_match` | Job title must match the current search or a `positions` entry (default `true`) |
+| `search.require_location_match` | Skip cards clearly in another country; search URLs include LinkedIn `geoId` (default `true`) |
+| `search.title_excludes` | Extra title phrases to skip, on top of built-in off-role terms |
 | `search.filters` | Easy Apply only, date posted, workplace, experience level |
 | `session.dry_run` | `true` in example; use `--live` to submit |
-| `session.max_applications_per_run` / `_per_day` | Caps; CLI `--max-apps` overrides per-run |
+| `session.max_applications_per_run` / `_per_day` | Counts **successful applies only**; missing Easy Apply does not burn the cap |
 | `qa_memory` | Fuzzy match + optional Ollama intent / embeddings |
 
 ## Outputs
 
 - `output/applications.csv` — per-job status
 - `output/seen_jobs.csv` — cross-run dedupe
+- `output/direct_jobs_queue.md` — AI-ranked Direct Apply checklist (grouped by Fast 1-Page ATS vs Company Portals)
+- `output/direct_jobs.csv` & `output/direct_seen_jobs.csv` — structured Direct Apply log & dedupe
 - `output/unanswered_questions.csv` — hard failures
 - `output/reports/run_summary_*.md` — end-of-run report
+- `output/reports/direct_jobs_*.md` — daily Direct Apply report
 - `crash_dumps/` — PNG + HTML on validation failure
 
 ## Docs

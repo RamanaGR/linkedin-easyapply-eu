@@ -39,6 +39,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Search only tech_keywords (disable positions)",
     )
+    p.add_argument(
+        "--direct-only",
+        action="store_true",
+        help="Scout external (non-Easy-Apply) jobs, score with AI, and save to Markdown queue",
+    )
+    p.add_argument(
+        "--min-score",
+        type=int,
+        default=None,
+        help="Override direct_apply.min_match_score (0-100) for --direct-only mode",
+    )
     return p
 
 
@@ -60,6 +71,10 @@ def main(argv: list[str] | None = None) -> int:
         config.session.dry_run = False
     if args.max_apps is not None:
         config.session.max_applications_per_run = args.max_apps
+        if args.direct_only:
+            config.direct_apply.max_collected_per_run = args.max_apps
+    if args.min_score is not None:
+        config.direct_apply.min_match_score = max(0, min(100, args.min_score))
     if args.position:
         config.positions = args.position
         config.search.use_positions = True
@@ -92,7 +107,10 @@ def main(argv: list[str] | None = None) -> int:
             return 3
         # Human step is only inside login() (mobile approve after Sign in).
         # No captcha pause during search/apply.
-        bot.run()
+        if args.direct_only:
+            bot.run_direct_scout()
+        else:
+            bot.run()
     except KeyboardInterrupt:
         logger.warning("Interrupted — writing summary")
     except OSError as exc:

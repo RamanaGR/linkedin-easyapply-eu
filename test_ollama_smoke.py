@@ -167,6 +167,94 @@ def test_years_and_counters(config) -> None:
     print("OK years/counters:", shaped)
 
 
+def test_direct_scout(config, ollama: OllamaClient | None = None) -> None:
+    import tempfile
+    from pathlib import Path
+    from src.direct_scout import DirectJobEvaluation, DirectJobScout, classify_ats_url
+    from src.job_search import JobCard, JobSearch
+
+    # 1) ATS classification
+    assert classify_ats_url("https://boards.greenhouse.io/acme/jobs/12345") == (
+        "Greenhouse",
+        "Fast 1-Page",
+    )
+    assert classify_ats_url("https://acme.jobs.personio.de/job/98765") == (
+        "Personio",
+        "Fast 1-Page",
+    )
+    assert classify_ats_url("https://acme.wd3.myworkdayjobs.com/en-US/careers/job/1") == (
+        "Workday",
+        "Account Portal",
+    )
+    custom_name, custom_tier = classify_ats_url("https://careers.deeptech.eu/openings/ai-eng")
+    assert "deeptech.eu" in custom_name and custom_tier == "Company Site"
+
+    # 2) Search URL builder with easy_apply_only=False
+    js = JobSearch(driver=None, config=config)  # type: ignore[arg-type]
+    url_ea = js.build_search_url("Senior AI Engineer", "Germany", easy_apply_only=True)
+    url_direct = js.build_search_url("Senior AI Engineer", "Germany", easy_apply_only=False)
+    assert "f_AL=true" in url_ea, url_ea
+    assert "f_AL=true" not in url_direct, url_direct
+
+    # 3) Skill extraction, scoring, and Markdown queue rendering (isolated temp files)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        scout = DirectJobScout(driver=None, config=config, ollama=ollama)
+        scout.seen_path = tmp_dir / "direct_seen_jobs.csv"
+        scout.csv_path = tmp_dir / "direct_jobs.csv"
+        scout.queue_path = tmp_dir / "direct_jobs_queue.md"
+        scout.seen_ids = set()
+        scout._ensure_files()
+
+        card = JobCard(
+            job_id="99887766",
+            title="Senior AI Engineer",
+            company="EuroAI GmbH",
+            location="Berlin, Germany",
+            link="https://www.linkedin.com/jobs/view/99887766",
+        )
+        jd = (
+            "We are looking for a Senior AI Engineer in Berlin. "
+            "You will build production RAG and Agentic AI systems using Python, "
+            "LangGraph, LangChain, FastAPI, Docker, and AWS. "
+            "Working language is English. Relocation support / Blue Card possible."
+        )
+        score, matched, visa_note, reason = scout.score_job_match(card, jd)
+        assert 95 <= score <= 100, f"Unexpected score: {score}"
+        assert "Python" in matched and "LangGraph" in matched, matched
+        assert "English OK" in visa_note or "Relocation" in visa_note, visa_note
+
+        eval_fast = DirectJobEvaluation(
+            job_id=card.job_id,
+            title=card.title,
+            company=card.company,
+            location=card.location,
+            linkedin_url=card.link,
+            external_url="https://boards.greenhouse.io/euroai/jobs/99887766",
+            ats_name="Greenhouse",
+            ats_tier="Fast 1-Page",
+            score=score,
+            matched_skills=matched,
+            visa_language_note=visa_note,
+            reason=reason,
+        )
+        scout.record_collected_job(eval_fast)
+        md_text = scout.queue_path.read_text(encoding="utf-8")
+        assert "Tier 1: Fast 1-Page ATS" in md_text
+        assert "Greenhouse" in md_text
+        assert "EuroAI GmbH" in md_text
+
+        # Verify user checkmarks [x] are preserved when regenerating queue
+        scout.queue_path.write_text(md_text.replace("- [ ]", "- [x]"), encoding="utf-8")
+        scout.write_markdown_queues()
+        updated_md = scout.queue_path.read_text(encoding="utf-8")
+        assert "- [x]" in updated_md, "User checkmark [x] was not preserved!"
+
+    print(
+        f"OK direct_scout: score={score}% matched={matched[:5]} ats=Greenhouse/Personio/Workday"
+    )
+
+
 def test_models(ollama: OllamaClient) -> None:
     models = ollama.ensure_models()
     print("OK models available:", models)
@@ -207,11 +295,13 @@ def main() -> int:
     test_salary_numeric_vs_range(config)
     test_shape_digits_and_maxlen(config)
     test_years_and_counters(config)
+    test_direct_scout(config, ollama=None)
 
     ollama = OllamaClient(env)
     try:
         test_models(ollama)
         test_visa_intent(config, ollama)
+        test_direct_scout(config, ollama=ollama)
     except Exception as exc:
         print("FAIL ollama:", exc)
         return 2

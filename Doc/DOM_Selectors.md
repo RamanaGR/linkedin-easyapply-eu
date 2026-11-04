@@ -30,3 +30,7 @@ Living document. Update when LinkedIn UI breaks.
 | Discard confirm | text Discard/Verwerfen | | TBD |
 | Captcha / checkpoint | URL contains `/checkpoint/` | Pause for human | TBD |
 | Easy Apply daily limit | Search right pane: `#jobs-apply-button-id[disabled]` + `.artdeco-inline-feedback--error .artdeco-inline-feedback__message` (“We limit daily submissions… Save this job and apply tomorrow.”) | Check **immediately after `open_search`** (two-pane details), then again on job page — `STOPPED_EASY_APPLY_LIMIT` | 2026-10-18 |
+| **Search results cards (SDUI 2026)** | `[role="button"][componentkey^="job-card-component-ref-"]` | `/jobs/search/` redirects to `/jobs/search-results/`; extract `job_id` from `componentkey` and `Easy Apply` badge from inner lines | 2026-11-04 |
+| **External Apply button (SDUI 2026)** | `a[aria-label*="Apply on company website"]`, `a[href*="linkedin.com/safety/go/"]` | Unwrap `url=` query param from `/safety/go/?url=...` for direct ATS link | 2026-11-04 |
+| **Job description (SDUI 2026)** | `About the job` text slice on `document.body.innerText` | Legacy `#job-details` absent on SDUI `/jobs/view/`; slice between `About the job` and `Set alert for similar jobs` / `About the company` | 2026-11-04 |
+
