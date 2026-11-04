@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 from selenium.webdriver.common.by import By
@@ -574,19 +575,38 @@ class EasyApplyBot:
         deadline = start + timedelta(seconds=self.config.session.max_search_time)
         max_apps = self.config.session.max_applications_per_run
         max_day = self.config.session.max_applications_per_day
-        attempted = 0
+        max_per_query = max(1, int(self.config.search.max_applications_per_query or 2))
+        max_per_role = max(1, int(self.config.search.max_applications_per_role or 8))
+        max_cards = max(1, int(self.config.search.max_cards_per_query or 12))
+        applied_count = 0
+        applied_per_role: dict[str, int] = defaultdict(int)
 
         queries = search.iter_queries()
-        logger.info("Search pairs: %s", len(queries))
+        logger.info(
+            "Search pairs: %s (strategy=%s, %s applies/query, %s applies/role, %s cards/query)",
+            len(queries),
+            self.config.search.strategy,
+            max_per_query,
+            max_per_role,
+            max_cards,
+        )
 
         seen_this_run: set[str] = set()
 
         for keywords, location in queries:
-            if datetime.now() >= deadline or attempted >= max_apps or self._stop:
+            if datetime.now() >= deadline or applied_count >= max_apps or self._stop:
                 break
             if self._applied_today >= max_day:
                 logger.info("Daily cap reached (%s)", max_day)
                 break
+            if applied_per_role[keywords] >= max_per_role:
+                logger.info(
+                    "Skipping '%s' @ %s — role cap %s reached",
+                    keywords,
+                    location,
+                    max_per_role,
+                )
+                continue
 
             try:
                 search.open_search(keywords, location)
@@ -603,6 +623,7 @@ class EasyApplyBot:
                         EC.presence_of_element_located(
                             (
                                 By.CSS_SELECTOR,
+                                '[componentkey^="job-card-component-ref-"], '
                                 ".jobs-search__job-details--container, "
                                 ".jobs-details__main-content, "
                                 "#jobs-apply-button-id, "
@@ -625,8 +646,33 @@ class EasyApplyBot:
                 self.reporter.scanned += len(cards)
                 logger.info("Found %s cards for '%s' @ %s", len(cards), keywords, location)
 
+                applied_this_query = 0
+                cards_tried = 0
                 for card in cards:
-                    if datetime.now() >= deadline or attempted >= max_apps:
+                    if datetime.now() >= deadline or applied_count >= max_apps:
+                        break
+                    if applied_this_query >= max_per_query:
+                        logger.info(
+                            "Query cap %s applies for '%s' @ %s — next search",
+                            max_per_query,
+                            keywords,
+                            location,
+                        )
+                        break
+                    if applied_per_role[keywords] >= max_per_role:
+                        logger.info(
+                            "Role cap %s applies for '%s' — later countries skipped",
+                            max_per_role,
+                            keywords,
+                        )
+                        break
+                    if cards_tried >= max_cards:
+                        logger.info(
+                            "Card cap %s for '%s' @ %s — next search",
+                            max_cards,
+                            keywords,
+                            location,
+                        )
                         break
                     if not card.job_id:
                         continue
@@ -640,8 +686,19 @@ class EasyApplyBot:
                         self._record(card, "SKIPPED_BLACKLIST", notes=reason)
                         continue
 
+                    title_reason = search.title_mismatch_reason(card, keywords)
+                    if title_reason:
+                        self._record(card, "SKIPPED_TITLE", notes=title_reason)
+                        continue
+
+                    loc_reason = search.location_mismatch_reason(card, location)
+                    if loc_reason:
+                        self._record(card, "SKIPPED_LOCATION", notes=loc_reason)
+                        continue
+
                     try:
                         self.driver.get(card.link)
+                        cards_tried += 1
                         human_delay(
                             self.config.session.min_delay_seconds,
                             self.config.session.max_delay_seconds,
@@ -671,13 +728,16 @@ class EasyApplyBot:
                             break
 
                         status = applier.apply_to_job(card)
-                        attempted += 1
                         # Button-not-found path used to return FAILED_EXCEPTION while
                         # the red limit banner was already on screen — re-check & stop.
                         if status != "STOPPED_EASY_APPLY_LIMIT" and (
                             applier.easy_apply_daily_limit_reached()
                         ):
                             status = "STOPPED_EASY_APPLY_LIMIT"
+                        if status in ("APPLIED", "DRY_RUN"):
+                            applied_count += 1
+                            applied_this_query += 1
+                            applied_per_role[keywords] += 1
                         if status == "APPLIED":
                             self._applied_today += 1
                         self._record(card, status)
@@ -694,7 +754,6 @@ class EasyApplyBot:
                     except Exception as exc:
                         logger.exception("Job loop error: %s", exc)
                         self._record(card, "FAILED_EXCEPTION", notes=str(exc))
-                        attempted += 1
                 if self._stop:
                     break
             except Exception as exc:
@@ -702,6 +761,230 @@ class EasyApplyBot:
                 # Do not pause for "captcha" mid-run — continue next query
                 continue
 
+        return self.reporter
+
+    def run_direct_scout(self) -> Reporter:
+        """Search LinkedIn without Easy Apply filter, score external jobs, and build Markdown queue."""
+        assert self.driver
+        from src.direct_scout import DirectJobEvaluation, DirectJobScout
+
+        search = JobSearch(self.driver, self.config)
+        scout = DirectJobScout(self.driver, self.config, self.ollama)
+
+        start = datetime.now()
+        deadline = start + timedelta(seconds=self.config.session.max_search_time)
+        max_collect = max(1, int(self.config.direct_apply.max_collected_per_run or 40))
+        max_per_query = max(1, int(self.config.direct_apply.max_collected_per_query or 3))
+        max_cards = max(1, int(self.config.search.max_cards_per_query or 12))
+        min_score = int(self.config.direct_apply.min_match_score or 95)
+
+        collected_count = 0
+        queries = search.iter_queries()
+        logger.info(
+            "Direct Scout mode: %s search pairs (min_score=%s%%, max_collect=%s, %s/query)",
+            len(queries),
+            min_score,
+            max_collect,
+            max_per_query,
+        )
+
+        seen_this_run: set[str] = set()
+
+        for keywords, location in queries:
+            if datetime.now() >= deadline or collected_count >= max_collect or self._stop:
+                break
+
+            try:
+                # Open search with easy_apply_only=False so external company jobs appear
+                search.open_search(keywords, location, easy_apply_only=False)
+                human_delay(
+                    self.config.session.min_delay_seconds,
+                    self.config.session.max_delay_seconds,
+                )
+                short_delay(2000)
+                try:
+                    WebDriverWait(self.driver, 8).until(
+                        EC.presence_of_element_located(
+                            (
+                                By.CSS_SELECTOR,
+                                '[componentkey^="job-card-component-ref-"], '
+                                ".jobs-search__job-details--container, "
+                                ".jobs-details__main-content, "
+                                "li.scaffold-layout__list-item",
+                            )
+                        )
+                    )
+                    short_delay(1000)
+                except Exception:
+                    pass
+
+                cards = search.parse_cards()
+                self.reporter.scanned += len(cards)
+                direct_candidates = [c for c in cards if not c.is_easy_apply]
+                logger.info(
+                    "[Direct Scout] Found %s cards (%s direct / %s Easy Apply) for '%s' @ %s",
+                    len(cards),
+                    len(direct_candidates),
+                    len(cards) - len(direct_candidates),
+                    keywords,
+                    location,
+                )
+
+                collected_this_query = 0
+                cards_tried = 0
+                for card in cards:
+                    if datetime.now() >= deadline or collected_count >= max_collect:
+                        break
+                    if collected_this_query >= max_per_query:
+                        logger.info(
+                            "[Direct Scout] Query cap %s reached for '%s' @ %s — next search",
+                            max_per_query,
+                            keywords,
+                            location,
+                        )
+                        break
+                    if cards_tried >= max_cards:
+                        break
+                    if not card.job_id:
+                        continue
+                    if (
+                        card.job_id in seen_this_run
+                        or card.job_id in scout.seen_ids
+                        or card.job_id in self.reporter.seen_ids
+                    ):
+                        self._record(card, "SKIPPED_SEEN")
+                        continue
+                    seen_this_run.add(card.job_id)
+
+                    if card.is_easy_apply and self.config.direct_apply.exclude_easy_apply_jobs:
+                        self._record(
+                            card,
+                            "SKIPPED_EASY_APPLY_JOB",
+                            notes="Card marked Easy Apply in search list",
+                        )
+                        continue
+
+                    reason = search.is_blacklisted(card)
+                    if reason:
+                        self._record(card, "SKIPPED_BLACKLIST", notes=reason)
+                        continue
+
+                    title_reason = search.title_mismatch_reason(card, keywords)
+                    if title_reason:
+                        self._record(card, "SKIPPED_TITLE", notes=title_reason)
+                        continue
+
+                    loc_reason = search.location_mismatch_reason(card, location)
+                    if loc_reason:
+                        self._record(card, "SKIPPED_LOCATION", notes=loc_reason)
+                        continue
+
+                    try:
+                        logger.info(
+                            "[Direct Scout] Navigating to job %s: %s @ %s (%s)",
+                            card.job_id,
+                            card.title,
+                            card.company,
+                            card.location,
+                        )
+                        self.driver.get(card.link)
+                        cards_tried += 1
+                        human_delay(
+                            self.config.session.min_delay_seconds,
+                            self.config.session.max_delay_seconds,
+                        )
+                        short_delay(800)
+
+                        desc = search.job_description_text()
+                        if search.requires_strict_german_c1(desc + " " + card.title):
+                            scout.mark_seen(card.job_id, "SKIPPED_LANGUAGE", score=0)
+                            self._record(card, "SKIPPED_LANGUAGE", notes="strict German C1")
+                            continue
+
+                        apply_kind, apply_el, direct_href = scout.inspect_apply_type()
+                        if apply_kind == "easy_apply":
+                            if self.config.direct_apply.exclude_easy_apply_jobs:
+                                self._record(
+                                    card,
+                                    "SKIPPED_EASY_APPLY_JOB",
+                                    notes="Easy Apply job on view page (skipped in --direct-only mode)",
+                                )
+                                continue
+                        elif apply_kind == "none":
+                            self._record(
+                                card,
+                                "SKIPPED_ALREADY_APPLIED",
+                                notes="No external apply button found",
+                            )
+                            continue
+
+                        score, matched_skills, visa_note, fit_reason = scout.score_job_match(
+                            card, desc
+                        )
+                        logger.info(
+                            "[Direct Scout] Evaluated %s @ %s -> score=%s%% (min=%s%%) skills=%s",
+                            card.title,
+                            card.company,
+                            score,
+                            min_score,
+                            matched_skills[:6],
+                        )
+                        if score < min_score:
+                            scout.mark_seen(card.job_id, "SKIPPED_LOW_MATCH", score=score)
+                            self._record(
+                                card,
+                                "SKIPPED_LOW_MATCH",
+                                notes=f"score={score}% < {min_score}% ({fit_reason})",
+                            )
+                            continue
+
+                        ext_url, ats_name, ats_tier = scout.resolve_external_apply_url(
+                            apply_el, direct_href, card.link
+                        )
+                        eval_item = DirectJobEvaluation(
+                            job_id=card.job_id,
+                            title=card.title,
+                            company=card.company,
+                            location=card.location,
+                            linkedin_url=card.link,
+                            external_url=ext_url,
+                            ats_name=ats_name,
+                            ats_tier=ats_tier,
+                            score=score,
+                            matched_skills=matched_skills,
+                            visa_language_note=visa_note,
+                            reason=fit_reason,
+                        )
+                        scout.record_collected_job(eval_item)
+                        collected_count += 1
+                        collected_this_query += 1
+                        self._record(
+                            card,
+                            "COLLECTED_DIRECT",
+                            notes=f"score={score}% ats={ats_name} url={ext_url}",
+                        )
+                        logger.info(
+                            "[Direct Scout] Saved [%s%% | %s] %s @ %s -> %s",
+                            score,
+                            ats_name,
+                            card.title,
+                            card.company,
+                            ext_url[:90],
+                        )
+                    except Exception as exc:
+                        logger.exception("Direct scout card error: %s", exc)
+                        self._record(card, "FAILED_EXCEPTION", notes=str(exc))
+            except Exception as exc:
+                logger.exception("Direct scout query error: %s", exc)
+                continue
+
+        q_path, dated_path = scout.write_markdown_queues()
+        logger.info(
+            "Direct Scout complete: %s jobs added. Master queue: %s | Today's report: %s",
+            len(scout.collected_this_run),
+            q_path,
+            dated_path,
+        )
         return self.reporter
 
     def _record(self, card: JobCard, status: str, notes: str = "") -> None:

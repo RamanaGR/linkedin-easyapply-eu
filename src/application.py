@@ -79,8 +79,8 @@ class ApplicationHandler:
                     "Easy Apply grayed out — treating as daily limit, stopping"
                 )
                 return "STOPPED_EASY_APPLY_LIMIT"
-            logger.warning("Easy Apply modal did not load for job %s", job.job_id)
-            return "FAILED_EXCEPTION"
+            logger.warning("No Easy Apply on job page — skip %s", job.job_id)
+            return "SKIPPED_NO_EASY_APPLY"
         if self.easy_apply_daily_limit_reached():
             logger.warning(
                 "LinkedIn Easy Apply daily limit reached — ending applications"

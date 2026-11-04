@@ -118,11 +118,25 @@ class SearchBlacklists(BaseModel):
 
 
 class Search(BaseModel):
-    # position_outer | location_outer | positions_and_tech
-    strategy: str = "positions_and_tech"
+    # round_robin | location_outer | position_outer | positions_and_tech
+    # round_robin / location_outer: Germany-first locations, every role per country
+    # position_outer / positions_and_tech: one role across all countries (starves later roles)
+    strategy: str = "round_robin"
     # Which keyword sources to use when strategy includes tech
     use_positions: bool = True
     use_tech_keywords: bool = True
+    # Stop this (role, location) after N successful applies and move on
+    max_applications_per_query: int = 2
+    # Stop searching a role after N successful applies this run
+    max_applications_per_role: int = 8
+    # After this many opened cards in one search, go to the next pair
+    max_cards_per_query: int = 12
+    # Skip cards whose title is not this search / configured positions (blocks Data Engineer, etc.)
+    require_title_match: bool = True
+    # Skip cards clearly in another country (e.g. Munich results on a France search)
+    require_location_match: bool = True
+    # Extra title substrings to skip (merged with built-in off-role list)
+    title_excludes: list[str] = Field(default_factory=list)
     filters: SearchFilters = Field(default_factory=SearchFilters)
     blacklists: SearchBlacklists = Field(default_factory=SearchBlacklists)
 
@@ -145,6 +159,17 @@ class QaMemory(BaseModel):
     fuzzy_low_threshold: int = 75
     use_ollama_intent: bool = True
     use_embeddings: bool = True
+
+
+class DirectApplyConfig(BaseModel):
+    min_match_score: int = 95
+    max_collected_per_run: int = 40
+    max_collected_per_query: int = 3
+    resolve_external_url: bool = True
+    exclude_easy_apply_jobs: bool = True
+    use_ollama_scoring: bool = True
+    queue_file: str = "output/direct_jobs_queue.md"
+
 
 
 class AppConfig(BaseModel):
@@ -185,6 +210,7 @@ class AppConfig(BaseModel):
         return out
     session: Session = Field(default_factory=Session)
     qa_memory: QaMemory = Field(default_factory=QaMemory)
+    direct_apply: DirectApplyConfig = Field(default_factory=DirectApplyConfig)
 
     def resume_path(self) -> Path:
         return project_path(self.uploads.Resume) if self.uploads.Resume else Path()

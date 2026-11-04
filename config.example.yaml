@@ -134,18 +134,26 @@ tech_keywords:
 
 locations:
   - "Germany"
-  - "Berlin, Germany"
-  - "Munich, Germany"
-  - "Frankfurt, Germany"
-  - "Hamburg, Germany"
   - "Netherlands"
-  - "Amsterdam, Netherlands"
+  - "Luxembourg"
+  - "Austria"
+  - "Belgium"
+  - "Ireland"
   - "European Union"
 
 search:
-  strategy: "positions_and_tech"
+  strategy: "round_robin"
   use_positions: true
-  use_tech_keywords: true
+  use_tech_keywords: false
+  max_applications_per_query: 2
+  max_applications_per_role: 8
+  max_cards_per_query: 12
+  require_title_match: true
+  require_location_match: true
+  title_excludes:
+    - "data engineer"
+    - "data analyst"
+    - "analytics engineer"
   filters:
     easy_apply_only: true
     date_posted: "past_week"
@@ -185,3 +193,13 @@ qa_memory:
   fuzzy_low_threshold: 75
   use_ollama_intent: true
   use_embeddings: true
+
+direct_apply:
+  min_match_score: 95
+  max_collected_per_run: 40
+  max_collected_per_query: 3
+  resolve_external_url: true
+  exclude_easy_apply_jobs: true
+  use_ollama_scoring: true
+  queue_file: "output/direct_jobs_queue.md"
+
